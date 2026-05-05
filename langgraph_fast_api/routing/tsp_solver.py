@@ -1,3 +1,8 @@
+"""
+Import library-library yang dibutuhkan. Solver Linear Programming dari Google ORTools di sini digunakan 
+untuk memecahkan permasalahan Traveling Salesperson Problem. 
+"""
+
 from ortools.constraint_solver import routing_enums_pb2, pywrapcp
 import numpy as np
 from utils import scaler
@@ -11,6 +16,7 @@ def _solve_tsp_sync(
     """
     Penyelesaian urutan kunjungan pada permasalahan TSP.
     """
+    #
     n = len(distance_matrix)
 
     if start is None and end == None: # Create open tsp matrix
@@ -106,3 +112,7 @@ async def intracluster_tsp(
     solution = [places[i] for i in solution]
 
     return solution, total_dist
+
+
+
+
