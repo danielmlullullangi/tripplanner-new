@@ -1,9 +1,19 @@
 """
-Import library-library yang dibutuhkan. Solver Linear Programming dari Google ORTools di sini digunakan 
-untuk memecahkan permasalahan Traveling Salesperson Problem. 
+Bagian pertama adalah import library-library yang dibutuhkan. Solver Linear Programming dari Google ORTools di sini 
+digunakan untuk memecahkan permasalahan Traveling Salesperson Problem (TSP).
+
+Singkatnya, TSP itu masalah optimasi yang kompleksitas komputasinya memiliki kategori NP-Hard, artinya 
+masalah yang tidak dapat diverifikasi dengan cepat. Artinya, tidak ada algoritma yang diketahui yang ada
+untuk memecahkan masalah ini dengan efektif.
+
+TSP sendiri mencari jawaban jika seorang salesperson yang harus mengunjungi sejumlah titik kota tepat 1 kali,
+dan harus kembali ke kota asal, urutan kota seperti apa yang menghasilkan jarak atau cost (biaya) yang paling kecil.
+
+Pada library di bawah, digunakan pemecahan TSP dari Google OR-Tools > Routing > TSP
+Link referensi: https://developers.google.com/optimization/routing/tsp#python_1
 """
 
-from ortools.constraint_solver import routing_enums_pb2, pywrapcp
+from ortools.constraint_solver import routing_enums_pb2, pywrapcp #Library OR-Tools
 import numpy as np
 from utils import scaler
 import asyncio
@@ -112,7 +122,3 @@ async def intracluster_tsp(
     solution = [places[i] for i in solution]
 
     return solution, total_dist
-
-
-
-
