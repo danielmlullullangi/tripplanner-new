@@ -19,26 +19,26 @@ import numpy as np
 from utils import scaler
 import asyncio
 
-
 """
 Tujuan akhirnya adalah berhasilnya dibuat sebuah routing solver.
 Untuk membuat routing solver, pertama didefinisikan dulu data-nya. Data ini
 berisi jarak titik suatu destinasi terhadap semua titik destinasi lainnya, untuk semua destinasi.
 Sehingga terbentuk n elemen jarak untuk semua m destinasi, dimana m=n sehingga List A[m][n].
-Data inilah yang disebut sebagai distance_matrix pada function _solve_tsp_sync.
+Data inilah yang disebut sebagai distance_matrix/num_nodes pada function _solve_tsp_sync.
 
-Selain 
+Selain itu, ada parameter start, end, depot, dan num_vehicles. Sebenarnya, ada 2 skema untuk RoutingIndexManager,
+yaitu Single Depot dimana kendaraan berangkat dan berakhir di titik yang sama dan Custom Start & End dimana kendaraan
+berangkat dan berakhir di titik yang berbeda. Pada solver di bawah, digunakan skema Custom Start & End karena tujuan dari 
+kode ini digunakan untuk mencari destinasi yang berbeda (user tidak mungkin mengunjungi titik awal dan akhir yang sama).
 """
+
 def _solve_tsp_sync(
-        distance_matrix: list[list[float]],
+        distance_matrix: list[list[float]], #num_nodes
         start: int | None = None,
         end: int | None = None,
 ):
-    """
-    Penyelesaian urutan kunjungan pada permasalahan TSP.
-    """
-    #
-    n = len(distance_matrix)
+
+    n = len(distance_matrix) #n -> 
 
     if start is None and end == None: # Create open tsp matrix
         new_matrix = [row + [0.0] for row in distance_matrix]
