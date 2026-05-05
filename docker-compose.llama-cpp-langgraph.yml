@@ -1,0 +1,72 @@
+services:
+  llm_llama_cpp:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: llm_llama_cpp
+    ports:
+      - "6000:6000"
+    volumes:
+      - ./models:/models
+    command:
+      - --model
+      - /models/Qwen3-Embedding-4B-Q4_K_M.gguf
+      - --embeddings
+      - --host
+      - 0.0.0.0
+      - --port
+      - "6000"
+      - --n-gpu-layers
+      - "0"
+      - --threads
+      - "3"
+      - --ctx-size
+      - "512"
+      - --batch-size
+      - "512"
+      - --kv-offload
+      - --cache-type-k
+      - q4_0
+      - --cache-type-v
+      - q4_0
+      - --parallel
+      - "4"
+      - --cont-batching
+      - --alias
+      - qwen3-embedding-4B
+      - --api-key
+      - tripplanner_embed
+      - --threads-http
+      - "3"
+    restart: no
+
+  langgraph:
+    build:
+      context: ./langgraph_fast_api
+      dockerfile: Dockerfile
+    container_name: langgraph
+    ports:
+      - "8000:8000"
+    depends_on:
+      - llm_llama_cpp
+    volumes:
+      - ./langgraph_fast_api:/app2_async
+    command: 
+      - granian
+      - --interface
+      - asgi
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --workers
+      - "1"
+      - --runtime-mode
+      - mt
+      - --loop
+      - uvloop
+      - --http
+      - "1"
+      - --no-ws
+      - --runtime-threads
+      - "4"
+      - app2_async:app
+    restart: no
