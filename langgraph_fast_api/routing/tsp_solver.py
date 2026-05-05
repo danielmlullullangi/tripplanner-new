@@ -1,23 +1,34 @@
 """
-Bagian pertama adalah import library-library yang dibutuhkan. Solver Linear Programming dari Google ORTools di sini 
-digunakan untuk memecahkan permasalahan Traveling Salesperson Problem (TSP).
+Bagian pertama dari kode ini adalah import library-library yang dibutuhkan. Keseluruhan kode ini 
+INTINYA adalah membuat suatu Solver Linear Programming dari Google ORTools yang cocok untuk
+memecahkan permasalahan Traveling Salesperson Problem (TSP), tepatnya menentukan rute paling cost-effective.
 
-Singkatnya, TSP itu masalah optimasi yang kompleksitas komputasinya memiliki kategori NP-Hard, artinya 
-masalah yang tidak dapat diverifikasi dengan cepat. Artinya, tidak ada algoritma yang diketahui yang ada
-untuk memecahkan masalah ini dengan efektif.
+Di sisi lain, TSP itu masalah optimasi yang kompleksitas komputasinya memiliki kategori NP-Hard. Artinya 
+masalah pada kategori ini tidak dapat diverifikasi dengan cepat. Artinya, tidak ada algoritma yang saat ini diketahui 
+yang ada untuk memecahkan masalah ini dengan efektif.
 
 TSP sendiri mencari jawaban jika seorang salesperson yang harus mengunjungi sejumlah titik kota tepat 1 kali,
 dan harus kembali ke kota asal, urutan kota seperti apa yang menghasilkan jarak atau cost (biaya) yang paling kecil.
 
-Pada library di bawah, digunakan pemecahan TSP dari Google OR-Tools > Routing > TSP
+Library yang diambil di bawah ini berasal dari pemecahan TSP dari Google OR-Tools > Routing > TSP
 Link referensi: https://developers.google.com/optimization/routing/tsp#python_1
 """
 
-from ortools.constraint_solver import routing_enums_pb2, pywrapcp #Library OR-Tools
+from ortools.constraint_solver import routing_enums_pb2, pywrapcp #library OR-Tools
 import numpy as np
 from utils import scaler
 import asyncio
 
+
+"""
+Tujuan akhirnya adalah berhasilnya dibuat sebuah routing solver.
+Untuk membuat routing solver, pertama didefinisikan dulu data-nya. Data ini
+berisi jarak titik suatu destinasi terhadap semua titik destinasi lainnya, untuk semua destinasi.
+Sehingga terbentuk n elemen jarak untuk semua m destinasi, dimana m=n sehingga List A[m][n].
+Data inilah yang disebut sebagai distance_matrix pada function _solve_tsp_sync.
+
+Selain 
+"""
 def _solve_tsp_sync(
         distance_matrix: list[list[float]],
         start: int | None = None,
