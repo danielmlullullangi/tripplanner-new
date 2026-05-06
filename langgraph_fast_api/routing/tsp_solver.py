@@ -107,8 +107,15 @@ def _solve_tsp_sync(
     Selanjutnya, didefinisikan juga search space di mana search space ini berisi semua kemungkinan rute yang ada.
     Nah, alasannya didefinisikannya search space ini adalah untuk mengurangi banyaknya search space ideal.
     Misal, ada 13 titik lokasi, artinya untuk mencari 1 jalur ideal, dibutuhkan 12! (faktorial) kombinasi urutan destinasi, yaitu ~479jt kemungkinan ➝ sangat LAMA. →➜➞➝
-    
+    Untuk itu, di sini pemilihan kandidat pada search space dilakukan dengan lebih "cerdas", yaitu dengan menggunakan FirstSolutionStrategy.CHEAPEST_ARC.
+    Sebenarnya FirstSolutionStrategy ini adalah fase pertama, tujuannya untuk menemukan solusi awal secara cepat dulu walau belum optimal. Fase pertama ini WAJIB pake FirstSolutionStrategy.
+    Nah, di sini digunakan PATH_CHEAPEST_ARC,yaitu pemilihan node (titik/destinasi) berikutnya berdasarkan cost termurah.
+
+    Sebenarnya, untuk kondisi banyak constraint yang harus dipenuhi, lebih cocok menggunakan PATH_MOST_CONSTRAINED_ARC,
+    yaitu pemilihan node berikutnya yang paling terkonstrain. Analoginya seperti memprioritaskan orang yang paling sibuk karena time-window terbatas, bisa melayani kendaraan tertentu saja, dll.
+    Untuk fase kedua, yaitu LocalSearchHeuristics (opsional bisa dipake or not). 
     """
+
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
     search_params = pywrapcp.DefaultRoutingSearchParameters()
@@ -117,8 +124,7 @@ def _solve_tsp_sync(
     )
 
     # search_params.local_search_metaheuristic = (
-    #     routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
-    # )
+    #     routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
     # search_params.time_limit.seconds = 1
 
     solution = routing.SolveWithParameters(search_params)
@@ -127,6 +133,10 @@ def _solve_tsp_sync(
         return None, -1
 
     route = []
+
+    """
+    
+    """
     index = routing.Start(0)
     while not routing.IsEnd(index):
         node = manager.IndexToNode(index)
@@ -145,7 +155,6 @@ async def solve_tsp(
         start: int | None = None,
         end: int | None = None,
 ):
-
     return await asyncio.to_thread(_solve_tsp_sync, distance_matrix, start, end)
 
 async def intracluster_tsp(
@@ -154,8 +163,7 @@ async def intracluster_tsp(
         end: int | None,
         distance_m: list[list[float]],
 ):
-
     solution, total_dist = await solve_tsp(distance_m, start, end)
     solution = [places[i] for i in solution]
-
+    
     return solution, total_dist
