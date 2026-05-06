@@ -30,6 +30,20 @@ Selain itu, ada parameter start, end, depot, dan num_vehicles. Sebenarnya, ada 2
 yaitu Single Depot dimana kendaraan berangkat dan berakhir di titik yang sama dan Custom Start & End dimana kendaraan
 berangkat dan berakhir di titik yang berbeda. Pada solver di bawah, digunakan skema Custom Start & End karena tujuan dari 
 kode ini digunakan untuk mencari destinasi yang berbeda (user tidak mungkin mengunjungi titik awal dan akhir yang sama).
+
+RoutingIndexManager adalah function internal yang berperan sebagai "seorang manager" untuk bisa tahu struktur masalah routing 
+agar nomor-nomor lokasi pada matriks distance_matrix bisa dipetakan ke bentuk integer internal-nya function 
+-> intinya, masalah routing-nya didefinisikan jadi sesuai ketentuan solvernya.
+
+Selanjutnya, data jarak antartitik pada distance_matrix. Tapi, karena masih dalam format list of list (raw), struktur ini
+didefiniskan oleh RoutingIndexManager dan kemudian komponen jarak antartitiknya digunakan solver untuk mengakses distance
+matrix kita. Nah, jembatan mengambil komponen jarak ini menggunakan function distance_callbanck.
+
+Selanjutnya, distance_callback didaftarkan ke dalam sistem solver sehingga solver mengoutputkan integer ID (transit_callback_index).
+Hal ini dilakukan karena solver OR-Tools ditulis dalam bahasa C++, tapi kita sebagai user menggunakan Python. Terdapat konsep FFI 
+(Foreign Function Interface) sebagai mekanisme komunikasi 2 bahasa pemrograman yang berbeda. Nah, function ini close-over variabel 
+data dan manager pada memori Python. Ketika function ini digunakan solver OR-Tools dalam C++, ia bisa mengakses variabel di luar dunia functionnya, 
+meskipun sudah pindah bahasa pemrograman, which is variabel data dan manager.
 """
 
 def _solve_tsp_sync(
@@ -76,6 +90,7 @@ def _solve_tsp_sync(
 
     routing = pywrapcp.RoutingModel(manager)
 
+
     def distance_callback(from_index, to_index):
         from_node = manager.IndexToNode(from_index)
         to_node = manager.IndexToNode(to_index)
@@ -83,6 +98,17 @@ def _solve_tsp_sync(
 
     transit_callback_index = routing.RegisterTransitCallback(distance_callback)
 
+    """
+    Selanjutnya, cost/biaya antara 2 lokasi yang berbeda ditambahkan pada SetArcCostEvaluatorofAllVehicle.
+    Pada kode ini, cost antara 2 lokasi adalah transit_callback_index (yang ada di dalam function SetArc-nya).
+    Sebenarnya, bisa dimodifikasi nih cost antara 2 titik selain mengandalkan jarak tempuhnya saja (transit_callback_index).
+    Jadi, bisa di-ideate-kan suatu nilai cost baru.
+
+    Selanjutnya, didefinisikan juga search space di mana search space ini berisi semua kemungkinan rute yang ada.
+    Nah, alasannya didefinisikannya search space ini adalah untuk mengurangi banyaknya search space ideal.
+    Misal, ada 13 titik lokasi, artinya untuk mencari 1 jalur ideal, dibutuhkan 12! (faktorial) kombinasi urutan destinasi, yaitu ~479jt kemungkinan ➝ sangat LAMA. →➜➞➝
+    
+    """
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
     search_params = pywrapcp.DefaultRoutingSearchParameters()
