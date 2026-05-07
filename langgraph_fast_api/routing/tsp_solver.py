@@ -46,44 +46,52 @@ data dan manager pada memori Python. Ketika function ini digunakan solver OR-Too
 meskipun sudah pindah bahasa pemrograman, which is variabel data dan manager.
 """
 
-def _solve_tsp_sync(
-        distance_matrix: list[list[float]], #num_nodes
-        start: int | None = None,
-        end: int | None = None,
+def solver_TSP_sync(
+        matriks_jarak_antardestinasi: list[list[float]], #num_nodes
+        titik_awal: int | None = None,
+        titik_akhir: int | None = None,
 ):
 
-    n = len(distance_matrix) #n -> 
+    jumlah_destinasi = len(matriks_jarak_antardestinasi)
+    jumlah_kendaraan = 1
 
-    if start is None and end == None: # Create open tsp matrix
-        new_matrix = [row + [0.0] for row in distance_matrix]
-        new_matrix.append([0.0] * (n+1))
+    """
+    By default, permasalahan TSP (aslinya)-salesman mulai dari kota A, pergi ke SEMUA kota lain, lalu kembali ke kota A lagi, itu disebut closed TSP karena
+    rutenya tertutup (closed-loop) yang titik awal dan akhirnya sama.
+
+
+    """
+
+    if titik_awal is None and titik_akhir == None: # Create open tsp matrix
+        new_matrix = [row + [0.0] for row in matriks_jarak_antardestinasi]
+        new_matrix.append([0.0] * (jumlah_destinasi+1))
 
         manager = pywrapcp.RoutingIndexManager(
-            n + 1,
-            1, # 1 vehicle
-            [n], # start node
-            [n] # end node
+            jumlah_destinasi + 1,
+            jumlah_kendaraan, # 1 vehicle
+            [jumlah_destinasi], # start node, dummy node
+            [jumlah_destinasi] # end node
         )
         matrix = new_matrix
-        dummy_node = n
+        dummy_node = jumlah_destinasi
 
-    elif start is not None and end is None:
+    elif titik_awal is not None and titik_akhir is None:
         manager = pywrapcp.RoutingIndexManager(
-            n,
-            1, # 1 vehicle
-            start, # start node
+            jumlah_destinasi,
+            jumlah_kendaraan, # 1 vehicle
+            titik_awal, # start node
         )
-        matrix = distance_matrix
+        matrix = matriks_jarak_antardestinasi
         dummy_node = None
 
     else:
         manager = pywrapcp.RoutingIndexManager(
-            n,
-            1, # 1 vehicle
-            [start], # start node
-            [end] # end node
+            jumlah_destinasi,
+            jumlah_kendaraan, # 1 vehicle
+            [titik_awal], # start node
+            [titik_akhir] # end node
         )
-        matrix = distance_matrix
+        matrix = matriks_jarak_antardestinasi
         dummy_node = None
 
     matrix = scaler(np.array(matrix), 1000)
@@ -122,7 +130,6 @@ def _solve_tsp_sync(
     search_params.first_solution_strategy = (
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
     )
-
     # search_params.local_search_metaheuristic = (
     #     routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
     # search_params.time_limit.seconds = 1
@@ -151,19 +158,19 @@ def _solve_tsp_sync(
     return route, solution.ObjectiveValue()/1000
 
 async def solve_tsp(
-        distance_matrix: list[list[float]],
-        start: int | None = None,
-        end: int | None = None,
+        matriks_jarak_antardestinasi: list[list[float]],
+        titik_awal: int | None = None,
+        titik_akhir: int | None = None,
 ):
-    return await asyncio.to_thread(_solve_tsp_sync, distance_matrix, start, end)
+    return await asyncio.to_thread(solver_TSP_sync, matriks_jarak_antardestinasi, titik_awal, titik_akhir)
 
 async def intracluster_tsp(
         places: list[str],
-        start: int | None,
-        end: int | None,
+        titik_awal: int | None,
+        titik_akhir: int | None,
         distance_m: list[list[float]],
 ):
-    solution, total_dist = await solve_tsp(distance_m, start, end)
+    solution, total_dist = await solve_tsp(distance_m, titik_awal, titik_akhir)
     solution = [places[i] for i in solution]
     
     return solution, total_dist
