@@ -2,19 +2,15 @@ from haversine import haversine
 import pandas as pd
 from routing.tsp_solver import intracluster_tsp
 
-
-"""
-
-"""
 def tentukan_titik_start_dan_end(
         koordinat_lokasi_pada_peta: dict[str, tuple[float, float]],
-        scores_map: dict[str, int],
-        ordered: list[str],
+        rating_lokasi_pada_peta: dict[str, int],
+        titik_lokasi_terfilter: list[str],
 ) -> tuple[int, int]:
     """
     Menentukan start dan end point berdasarkan tempat dengan rating tertinggi atau terdekat
     """
-    jumlah_tempat_dalam_cluster = len(ordered)
+    jumlah_tempat_dalam_cluster = len(titik_lokasi_terfilter)
     if jumlah_tempat_dalam_cluster == 0:
         return -1, -1 # Menandakan tidak ada tempat dalam cluster
     if jumlah_tempat_dalam_cluster == 1:
@@ -24,120 +20,117 @@ def tentukan_titik_start_dan_end(
 
     # Menentukan start_idx
     # Cluster (hari) pertama
-    indeks_titik_pertama = ordered.index(max(ordered, key=lambda p: scores_map.get(p, 0))) # Heuristic: mengambil tempat dengan rating tertinggi
+    indeks_titik_pertama = titik_lokasi_terfilter.index(max(titik_lokasi_terfilter, key=lambda p: rating_lokasi_pada_peta.get(p, 0))) # Heuristic: mengambil tempat dengan rating tertinggi
 
     # Mencari end_idx dengan titik terjauh dengan start_idx
-    start_coord = koordinat_lokasi_pada_peta[ordered[indeks_titik_pertama]]
+    start_coord = koordinat_lokasi_pada_peta[titik_lokasi_terfilter[indeks_titik_pertama]]
     jarak = -1
 
     for tempat in range(jumlah_tempat_dalam_cluster):
         if tempat == indeks_titik_pertama:
             continue
 
-        d = haversine(start_coord, koordinat_lokasi_pada_peta[ordered[tempat]])
-        if d > jarak:
-            jarak = d
+        jarak_haversine = haversine(start_coord, koordinat_lokasi_pada_peta[titik_lokasi_terfilter[tempat]])
+        if jarak_haversine > jarak:
+            jarak = jarak_haversine
             indeks_titik_terakhir = tempat
-
     return indeks_titik_pertama, indeks_titik_terakhir
 
-def get_distance_matrix(
+def hitung_matriks_jarak_antartitik(
         koordinat_lokasi_pada_peta: dict[str, tuple[float, float]],
-        places: list[str]
+        daftar_nama_tempat: list[str]
 ) -> list[list[float]]:
     """
     Menghitung distance matrix berdasarkan
     tempat yang sudah diketahui
     """
-    n = len(places)
-    coords = [koordinat_lokasi_pada_peta[p] for p in places]
+    jumlah_tempat = len(daftar_nama_tempat)
+    koordinat_terurut_bds_lokasi = [koordinat_lokasi_pada_peta[p] for p in places]
 
-    matrix = [[0.0] * n for _ in range(n)]
+    matrix = [[0.0] * jumlah_tempat for _ in range(jumlah_tempat)]
 
     # hitung hanya segitiga atas (karena simetris)
-    for i in range(n):
-        c1 = coords[i]
-        for j in range(i + 1, n):
-            d = haversine(c1, coords[j])
-            matrix[i][j] = d
-            matrix[j][i] = d
-
+    for counter_baris in range(jumlah_tempat):
+        koordinat_tempat = koordinat_terurut_bds_lokasi[counter_baris]
+        for counter_kolom in range(counter_baris + 1, jumlah_tempat):
+            d = haversine(koordinat_tempat, koordinat_terurut_bds_lokasi[counter_kolom])
+            matrix[counter_baris][counter_kolom] = d
+            matrix[counter_baris][counter_kolom] = d
     return matrix
 
-def itinerary(
-        P: dict[int, list[str]],
-        D: int
+def bagi_destinasi_jadi_jadwal_per_hari(
+        semua_destinasi: dict[int, list[str]],
+        jumlah_hari: int
 ) -> dict[int, list[str]]:
 
-    result_all = P[1]
-    n = len(result_all)
+    list_destinasi = semua_destinasi[1]
+    jumlah_destinasi = len(list_destinasi)
 
-    n_per_day = n // D
-    remainder = n % D
+    jumlah_destinasi_minimal_per_hari = jumlah_destinasi // jumlah_hari
+    sisa_bagi = jumlah_destinasi % jumlah_hari
 
-    P_processed = {}
+    destinasi_dibagi_per_hari = {}
     start = 0
     
-    for d in range(1, D+1):
-        extra = 1 if d <= remainder else 0
-        end = start + n_per_day + extra
-        P_processed[d] = result_all[start:end]
+    for d in range(1, jumlah_hari+1):
+        extra = 1 if d <= sisa_bagi else 0
+        end = start + jumlah_destinasi_minimal_per_hari + extra
+        destinasi_dibagi_per_hari[d] = list_destinasi[start:end]
         start = end
 
-    return P_processed
+    return destinasi_dibagi_per_hari
 
-async def destination_routing(
-        query: pd.DataFrame,
-        clusters: dict[int, list[str]],
-        D: int
+async def routing_destinasi(
+        data_tempat_wisata: pd.DataFrame,
+        tempat_wisata_terfilter: dict[int, list[str]],
+        jumlah_hari: int
 ) -> dict[int, list[str]]:
     """
     Melakukan pengurutan destinasi intercluster, lalu intracluster
     """
-    if len(clusters) == 0:
+    if len(tempat_wisata_terfilter) == 0:
         return {}, 0.0
 
     # ekstraks koordinat dan score (rating)
-    titles = query["title"].to_numpy()
-    lat = query["latitude"].to_numpy()
-    lon = query["longitude"].to_numpy()
-    rating = query["rating"].to_numpy()
+    nama_destinasi = data_tempat_wisata["title"].to_numpy()
+    latitude = data_tempat_wisata["latitude"].to_numpy()
+    longitude = data_tempat_wisata["longitude"].to_numpy()
+    rating = data_tempat_wisata["rating"].to_numpy()
 
-    coordinates_map = {
-        t: (la, lo)
-        for t, la, lo in zip(titles, lat, lon)
+    array_koordinat_per_titik = {
+        titik: (lat, lon)
+        for titik, lat, lon in zip(nama_destinasi, latitude, longitude)
     }
 
-    scores_map = dict(zip(titles, rating))
+    rating_lokasi_pada_peta = dict(zip(nama_destinasi, rating))
 
     # Membuat distance matrix untuk setiap cluster
-    dist_mat = {1: get_distance_matrix(coordinates_map, clusters[1])}
+    matriks_jarak = {1: hitung_matriks_jarak_antartitik(array_koordinat_per_titik, tempat_wisata_terfilter[1])}
 
     # Optimisasi urutan destinasi di setiap cluster (intracluster)
-    P = {1: []}
-    places = clusters[1]
+    titik_hasil_TSP_dibagi_per_hari = {1: []}
+    tempat_wisata = tempat_wisata_terfilter[1]
 
-    if len(places) == 0:
-        P[1] = []
-        return P, 0.0
+    if len(tempat_wisata) == 0:
+        titik_hasil_TSP_dibagi_per_hari[1] = []
+        return titik_hasil_TSP_dibagi_per_hari, 0.0
 
-    elif len(places) == 1:
-        P[1] = places
-        return P, 0.0
+    elif len(tempat_wisata) == 1:
+        titik_hasil_TSP_dibagi_per_hari[1] = tempat_wisata
+        return titik_hasil_TSP_dibagi_per_hari, 0.0
 
     start, end = tentukan_titik_start_dan_end(
-            coordinates_map,
-            scores_map,
-            places
+            array_koordinat_per_titik,
+            rating_lokasi_pada_peta,
+            tempat_wisata
         )
     
-    P[1], dist = await intracluster_tsp(
-            places,
+    titik_hasil_TSP_dibagi_per_hari[1], total_jarak_perjalanan = await intracluster_tsp(
+            tempat_wisata,
             start,
             end,
-            dist_mat[1],
+            matriks_jarak[1],
         )
+    titik_hasil_TSP_dibagi_per_hari = bagi_destinasi_jadi_jadwal_per_hari(titik_hasil_TSP_dibagi_per_hari, jumlah_hari)
 
-    P = itinerary(P, D)
-
-    return P, dist
+    return titik_hasil_TSP_dibagi_per_hari, total_jarak_perjalanan

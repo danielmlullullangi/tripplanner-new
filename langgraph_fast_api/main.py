@@ -2,7 +2,7 @@ from typing_extensions import TypedDict, Any
 import pandas as pd
 from destination_filter.preferences import get_preferences
 from destination_filter.planner import trip_planner_selection
-from routing.routing_core import destination_routing
+from routing.routing_core import routing_destinasi
 from destination_filter.get_nearby_food_hotel import get_top_food_hotel
 from utils import generate_metadata
 
@@ -32,7 +32,7 @@ async def generate_itinerary(data_input, data_enhanced, days, whom, styles, budg
     result, total_destination_cost = await trip_planner_selection(query_enhanced, query, days, budget, time_limit, False)
     # print("HAHA3")
     # Destination routing
-    P, total_dist = await destination_routing(query, result, days)
+    P, total_dist = await routing_destinasi(query, result, days)
     # print("HAHA4")
     # Find nearest accommodation
     food, hotel = await get_top_food_hotel(query_accom, query, P, days, 5)
