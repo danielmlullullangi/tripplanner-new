@@ -149,7 +149,7 @@ def solver_TSP_sync(
     route = []
 
     """
-    
+    Selanjutnya, proses looping dijalankan yang batasnya adalah titik destinasi terakhir (IsEnd(index)). Variabel index mendeskripsikan titik awal dimulainya rute (kendaraan ke-0).
     """
     index = routing.Start(0)
     while not routing.IsEnd(index):
@@ -158,13 +158,14 @@ def solver_TSP_sync(
             route.append(node)
         index = solution.Value(routing.NextVar(index))
 
+    #Menambahkan titik terakhir. Kenapa perlu? Karena End node belum dimasukkan ke route karena loop sudah berhenti sebelum bisa append destinasinya.
     end_node = manager.IndexToNode(index)
     if end_node != dummy_node:
         route.append(end_node)
 
     return route, solution.ObjectiveValue()/1000
 
-async def solve_tsp(
+async def solver_TSP_async(
         matriks_jarak_antardestinasi: list[list[float]],
         titik_awal: int | None = None,
         titik_akhir: int | None = None,
@@ -175,9 +176,9 @@ async def intracluster_tsp(
         places: list[str],
         titik_awal: int | None,
         titik_akhir: int | None,
-        distance_m: list[list[float]],
+        matriks_jarak_antardestinasi: list[list[float]],
 ):
-    solution, total_dist = await solve_tsp(distance_m, titik_awal, titik_akhir)
-    solution = [places[i] for i in solution]
+    solusi, total_jarak_tempuh = await solver_TSP_async(matriks_jarak_antardestinasi, titik_awal, titik_akhir)
+    solusi = [places[i] for i in solusi]
     
-    return solution, total_dist
+    return solusi, total_jarak_tempuh
