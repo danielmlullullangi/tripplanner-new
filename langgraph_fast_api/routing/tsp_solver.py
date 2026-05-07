@@ -56,12 +56,16 @@ def solver_TSP_sync(
     jumlah_kendaraan = 1
 
     """
-    By default, permasalahan TSP (aslinya)-salesman mulai dari kota A, pergi ke SEMUA kota lain, lalu kembali ke kota A lagi, itu disebut closed TSP karena
+    By default, permasalahan TSP (aslinya)--salesman mulai dari kota A, pergi ke SEMUA kota lain, lalu kembali ke kota A LAGI--itu disebut closed TSP karena
     rutenya tertutup (closed-loop) yang titik awal dan akhirnya sama.
 
-
+    Bisa dimodifikasi permasalahan TSP untuk case ini, dimana titik awal dan titik akhirnya SELALU ditentukan. Pada case ini, conditional yang aktif 
+    selalu pada 'else'-nya dan kondisi if dan elif semuanya tidak terpenuhi.
+    Kondisi yang DIPAKAI saat ini adalah titik awalnya adalah destinasi dengan rating tertinggi dan titik akhirnya adalah destinasi dengan lokasi geografis (jarak) 
+    yang paling jauh dari titik awalnya.
     """
 
+    #TIDAK DIPAKAI
     if titik_awal is None and titik_akhir == None: # Create open tsp matrix
         new_matrix = [row + [0.0] for row in matriks_jarak_antardestinasi]
         new_matrix.append([0.0] * (jumlah_destinasi+1))
@@ -75,6 +79,7 @@ def solver_TSP_sync(
         matrix = new_matrix
         dummy_node = jumlah_destinasi
 
+    #TIDAK DIPAKAI
     elif titik_awal is not None and titik_akhir is None:
         manager = pywrapcp.RoutingIndexManager(
             jumlah_destinasi,
@@ -84,6 +89,7 @@ def solver_TSP_sync(
         matrix = matriks_jarak_antardestinasi
         dummy_node = None
 
+    #Yang DIPAKAI saat ini hanya kondisi yang ini
     else:
         manager = pywrapcp.RoutingIndexManager(
             jumlah_destinasi,
@@ -121,7 +127,7 @@ def solver_TSP_sync(
 
     Sebenarnya, untuk kondisi banyak constraint yang harus dipenuhi, lebih cocok menggunakan PATH_MOST_CONSTRAINED_ARC,
     yaitu pemilihan node berikutnya yang paling terkonstrain. Analoginya seperti memprioritaskan orang yang paling sibuk karena time-window terbatas, bisa melayani kendaraan tertentu saja, dll.
-    Untuk fase kedua, yaitu LocalSearchHeuristics (opsional bisa dipake or not). 
+    Untuk fase kedua, yaitu LocalSearchHeuristics (opsional bisa dipake or not). Sebenarnya, tidak harus LocalSearchHeuritstics. Ada variasi lain. Namun, paling umum digunakan pada fase 2 adalah LocalSearchHeuristics.
     """
 
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
@@ -130,6 +136,7 @@ def solver_TSP_sync(
     search_params.first_solution_strategy = (
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
     )
+    
     # search_params.local_search_metaheuristic = (
     #     routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
     # search_params.time_limit.seconds = 1
