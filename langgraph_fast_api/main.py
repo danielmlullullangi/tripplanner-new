@@ -6,58 +6,54 @@ from routing.routing_core import routing_destinasi
 from destination_filter.get_nearby_food_hotel import get_top_food_hotel
 from utils import generate_metadata
 
-async def generate_itinerary(data_input, data_enhanced, days, whom, styles, budget, destination):
+async def generate_itinerary(data_input, data_rating_modified, jumlah_hari, whom, styles, budget, daerah_tujuan_destinasi):
     # Ubah data dari supabase (list of dict) ke dataframe
-    dat = pd.DataFrame(data_input)
-    dat_enhanced = pd.DataFrame(data_enhanced)
-    
-    query_enhanced = dat_enhanced.loc[(dat["category"] != "Hotels & Accomodations") &
-                    (dat["category"] != "Food & Drink") &
-                    (dat["poi"] != "event")]
+    data_input = pd.DataFrame(data_input)
+    data_rating_modified = pd.DataFrame(data_rating_modified)
 
-    query = dat.loc[(dat["category"] != "Hotels & Accomodations") &
-                    (dat["category"] != "Food & Drink") &
-                    (dat["poi"] != "event")]
+    data_destinasi_rating_modified = data_rating_modified.loc[(data_input["category"] != "Hotels & Accomodations") &
+                    (data_input["category"] != "Food & Drink") &
+                    (data_input["poi"] != "event")]
 
-    query_accom = dat.loc[((dat["category"] == "Hotels & Accomodations") |
-                          (dat["category"] == "Food & Drink")) &
-                          (dat["poi"] != "event")]
+    data_destinasi = data_input.loc[(data_input["category"] != "Hotels & Accomodations") &
+                    (data_input["category"] != "Food & Drink") &
+                    (data_input["poi"] != "event")]
+
+    data_hotel_restoran = data_input.loc[((data_input["category"] == "Hotels & Accomodations") |
+                          (data_input["category"] == "Food & Drink")) &
+                          (data_input["poi"] != "event")]
 
     # Get preferences
-    print("HAHA1")
-    time_limit, query = await get_preferences(query, days, whom, styles)
-    query_enhanced = query_enhanced.loc[query.index]
-    # print("HAHA2")
+    time_limit, data_destinasi = await get_preferences(data_destinasi, jumlah_hari, whom, styles)
+    data_destinasi_rating_modified = data_destinasi_rating_modified.loc[data_destinasi.index]
+
     # Search destination
-    result, total_destination_cost = await trip_planner_selection(query_enhanced, query, days, budget, time_limit, False)
-    # print("HAHA3")
+    result, total_biaya = await trip_planner_selection(data_destinasi_rating_modified, data_destinasi, jumlah_hari, budget, time_limit, False)
+
     # Destination routing
-    P, total_dist = await routing_destinasi(query, result, days)
-    # print("HAHA4")
+    titik_hasil_TSP_dibagi_per_hari, total_dist = await routing_destinasi(data_destinasi, result, jumlah_hari)
+
     # Find nearest accommodation
-    food, hotel = await get_top_food_hotel(query_accom, query, P, days, 5)
-    # print("HAHA5")
+    restoran, hotel = await get_top_food_hotel(data_hotel_restoran, data_destinasi, titik_hasil_TSP_dibagi_per_hari, jumlah_hari, 5)
 
-    P = generate_metadata(P, query)
-    food = generate_metadata(food, query_accom)
-    hotel = generate_metadata(hotel, query_accom)
-    # print("HAHA6")
 
-    def mean_price(
-            res: dict[int, dict[str, dict[str, Any]]]
+    titik_hasil_TSP_dibagi_per_hari = generate_metadata(titik_hasil_TSP_dibagi_per_hari, data_destinasi)
+    restoran = generate_metadata(restoran, data_hotel_restoran)
+    hotel = generate_metadata(hotel, data_hotel_restoran)
+
+    def hitung_rata_rata(
+            input_data: dict[int, dict[str, dict[str, Any]]]
     ) -> int:
         total = count = 0
-        for day in res.values():
+        for day in input_data.values():
             for place in day.values():
                 total += place["price_mean"]
                 count += 1
 
-        res_mean = int(total / count) if count else 0
-        return res_mean
+        input_rata_rata = int(total / count) if count else 0
+        return input_rata_rata
 
-    # print("HAHA6")
-    food_mean = mean_price(food)
-    # print("HAHA7")
-    hotel_mean = mean_price(hotel)
-    print("HAHA8")
-    return P, food, hotel, total_destination_cost, food_mean, hotel_mean
+    harga_rerata_restoran = hitung_rata_rata(restoran)
+    harga_rerata_hotel = hitung_rata_rata(hotel)
+
+    return titik_hasil_TSP_dibagi_per_hari, restoran, hotel, total_biaya, harga_rerata_restoran, harga_rerata_hotel
