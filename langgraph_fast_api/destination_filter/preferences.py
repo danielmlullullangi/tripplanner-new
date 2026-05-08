@@ -10,7 +10,9 @@ def _sync_get_preferences(
         styles: str | list[str] = ["default"],
 ) -> tuple[list[float], pd.DataFrame, float]:
 
-    ## With Whom ##
+    """
+    Batasan waktu perjalanan dalam 1 hari tergantung whom-nya: solo, family, couple, friends, dan elderly.
+    """
     ### Solo
     if whom == "solo":
         time_limit = [np.random.randint(low=8, high=9) for _ in range(jumlah_hari)]

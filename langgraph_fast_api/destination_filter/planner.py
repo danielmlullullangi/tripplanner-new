@@ -44,53 +44,6 @@ def _solve_and_collect(
 
     return result, False, total_cost
 
-# def get_result(
-#     N_places: int,
-#     x_var: dict[tuple[int, int], cp_model.IntVar],
-#     places: list[str],
-#     cost: list[int],
-#     model: cp_model.CpModel,
-# ) -> dict[int, list[str]]:
-#     return _solve_and_collect(N_places, x_var, places, cost, model)
-
-# def get_result_pretty_print(
-#     N_places: int,
-#     x_var: dict[tuple[int, int], cp_model.IntVar],
-#     places: list[str],
-#     cost: list[int],
-#     duration: list[float],
-#     model: cp_model.CpModel,
-# ) -> dict[int, list[str]]:
-
-#     solver = cp_model.CpSolver()
-
-#     start = time.time()
-#     status = solver.Solve(model)
-#     elapsed = time.time() - start
-#     print("Time execution:", elapsed, "s\n")
-
-#     result = {1: []}
-
-#     total_cost = 0
-
-#     if status != cp_model.OPTIMAL:
-#         print("Tidak ada solusi.")
-#         return result, False, total_cost
-
-#     day_time = 0
-#     for i in range(N_places):
-#         if solver.value(x_var[i]) == 1:
-#             result[1].append(places[i])
-#             print(f"  - {places[i]}")
-#             total_cost += cost[i]
-#             day_time += duration[i]
-
-#     print(f"Total Waktu: {day_time} jam\n")
-#     print("Total score (objective value):", solver.objective_value)
-#     print("Total cost:", total_cost)
-
-#     return result, True, total_cost
-
 def _create_solver(data: pd.DataFrame, data_original, D, budget, time_limit, alternative: bool = False):        
         rating_real = data["rating_total"].values
         cost_real = data["price_mean"].values
