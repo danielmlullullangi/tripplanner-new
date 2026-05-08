@@ -19,6 +19,10 @@ def filter_tempat_bds_radius(data_input: pd.DataFrame) -> tuple[pd.DataFrame, pd
 
     return data_input.loc[apakah_titik_kurang_dari_radius], data_input.loc[~apakah_titik_kurang_dari_radius]
 
+"""
+
+"""
+
 def solver_CP_SAT(
     jumlah_tempat_wisata: int,
     bool_pemilihan_tempat_oleh_solver: dict[tuple[int, int], cp_model.IntVar],
