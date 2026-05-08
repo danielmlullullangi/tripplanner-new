@@ -69,13 +69,11 @@ def model_terkonfigurasi(
         ## x[i][d] = 1 jika tempat i dikunjungi hari d
         bool_terpilih_tidak = {
             i: model.new_int_var(0, 1, f"x_{i}")
-            for i in range(jumlah_tempat_wisata)
-        }
+            for i in range(jumlah_tempat_wisata)}
 
         # Objective function: maximize rating
         model.maximize(
-            sum(rating[i] * bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata))
-        )
+            sum(rating[i] * bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata)))
 
         if not alternative:
             # Constraint 1: minimal D*1 tempat
@@ -87,19 +85,16 @@ def model_terkonfigurasi(
 
         # Constraint 3: total biaya
         model.add(
-            sum(harga[i] * bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata)) <= budget * 100
-        )
+            sum(harga[i] * bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata)) <= budget * 100)
 
         # Constraint 4: batas waktu wisata
         model.add(
-            sum(duration[i] * bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata)) <= sum(time_limit) * 100
-        )
+            sum(duration[i] * bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata)) <= sum(time_limit) * 100)
 
         if not alternative:
             # Constraint 5: maksimal D*1 tempat yang harganya 0
             model.add(
-                sum(bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata) if harga[i] == 0) <= jumlah_hari*1
-            )
+                sum(bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata) if harga[i] == 0) <= jumlah_hari*1)
 
         # Constraint 6: maksimal D*10 tempat
         model.add(
@@ -108,23 +103,22 @@ def model_terkonfigurasi(
         return nama_tempat_wisata, harga_rerata_original, durasi_modified, jumlah_tempat_wisata, bool_terpilih_tidak, model
 
 def jalankan_solver(
-    data: pd.DataFrame,
-    data_original: pd.DataFrame,
-    D: int,
-    budget: int | float,
-    time_limit: list[float],
-    alternative: bool = False,
+    data_input_modified, 
+    data_input_original, 
+    jumlah_hari, 
+    budget, 
+    time_limit, 
+    alternative: bool = False
 ):
-    places, cost, _, N, x, model = model_terkonfigurasi(
-        data, 
-        data_original, 
-        D, 
+    daftar_nama_tempat, harga_tiap_tempat, _, jumlah_tempat_wisata, bool_pemilihan_tempat_oleh_solver, model = model_terkonfigurasi(
+        data_input_modified, 
+        data_input_original, 
+        jumlah_hari, 
         budget, 
         time_limit, 
         alternative
     )
-
-    return solver_CP_SAT(N, x, places, cost, model)
+    return solver_CP_SAT(jumlah_tempat_wisata, bool_pemilihan_tempat_oleh_solver, daftar_nama_tempat, harga_tiap_tempat, model)
 
 async def jalankan_solver_async(
     data: pd.DataFrame,
@@ -140,9 +134,9 @@ async def jalankan_solver_async(
 
 # Linear Optimization (SAT) (sama aja, tapi nilai constraint nya bisa desimal)
 async def trip_planner_selection(
-    query: pd.DataFrame, # enhanced
-    query_original: pd.DataFrame,
-    D: int,
+    data_input_modified: pd.DataFrame, # enhanced
+    data_input_original: pd.DataFrame,
+    jumlah_hari: int,
     budget: int | float,
     time_limit: list[float],
     pretty_print: bool = False
@@ -151,66 +145,77 @@ async def trip_planner_selection(
     def flatten(res):
         return res[1]
 
-    query_masked, query_out = filter_tempat_bds_radius(query)
-    query_masked_ori, query_out_ori = filter_tempat_bds_radius(query_original)
+    tempat_wisata_dalam_radius, tempat_wisata_luar_radius = filter_tempat_bds_radius(data_input_modified)
+    tempat_wisata_dalam_radius_original, tempat_wisata_luar_radius_original = filter_tempat_bds_radius(data_input_original)
 
-    result, success, total_cost = await jalankan_solver_async(
-        query_masked, query_masked_ori, D, budget, time_limit
+    tempat_terpilih, berhasil_tidak, total_biaya = await jalankan_solver_async(
+        tempat_wisata_dalam_radius, tempat_wisata_dalam_radius_original, jumlah_hari, budget, time_limit
     )
-    res = flatten(result)
+    res = flatten(tempat_terpilih)
 
-    if not res and len(query_masked) > 0 and not success:
-        N = len(query_masked)
+    if not res and len(tempat_wisata_dalam_radius) > 0 and not berhasil_tidak:
+        jumlah_tempat_tersedia = len(tempat_wisata_dalam_radius)
 
-        if N <= D:
+        if jumlah_tempat_tersedia <= jumlah_hari:
             # Ambil tempat seadanya
-            total_cost = 0
-            result = {1: []}
+            total_biaya = 0
+            tempat_terpilih = {1: []}
             print("Masih ada tempat di dalam radius, (N <= D). Mengambil tempat seadanya.")
-            cost = query_masked["price_max"].values
-            places = query_masked["title"].values
+            cost = tempat_wisata_dalam_radius["price_max"].values
+            places = tempat_wisata_dalam_radius["title"].values
             for i in range(N):
-                result[1].append(places[i])
+                tempat_terpilih[1].append(places[i])
                 total_cost += cost[i]
         else: # N > D
             # Gunakan constraint alternatif
             print("Masih ada tempat di dalam radius, (N > D). Menggunakan constraint alternatif.")
-            result, success, total_cost = await jalankan_solver_async(
-                query_masked, query_masked_ori, 
-                D, 
+            tempat_terpilih, berhasil_tidak, total_biaya = await jalankan_solver_async(
+                tempat_wisata_dalam_radius, 
+                tempat_wisata_dalam_radius_original, 
+                jumlah_hari, 
                 budget, 
                 time_limit, 
                 alternative=True
             )
 
-    res = flatten(result)
+    res = flatten(tempat_terpilih)
 
-    if not res and len(query_out) > 0:
+    if not res and len(tempat_wisata_luar_radius) > 0:
         # Ambil tempat yang gabung dengan yang ada di luar radius
-        N = len(query)
+        jumlah_tempat_tersedia = len(data_input_modified)
 
-        if N <= D:
+        if jumlah_tempat_tersedia <= jumlah_hari:
             # Ambil tempat seadanya
-            total_cost = 0
-            result = {1: []}
+            total_biaya = 0
+            tempat_terpilih = {1: []}
             print("Tidak ada solusi di dalam radius, (N <= D).\nMenggunakan data gabungan.\nMengambil tempat seadanya.")
-            cost = query["price_max"].values
-            places = query["title"].values
-            for i in range(N):
-                result[1].append(places[i])
-                total_cost += cost[i]
+            cost = data_input_modified["price_max"].values
+            places = data_input_modified["title"].values
+            for i in range(jumlah_tempat_tersedia):
+                tempat_terpilih[1].append(places[i])
+                total_biaya += cost[i]
+        
         else: # N > D
             # Gunakan constraint utama, dengan data query gabungan
             print("Tidak ada solusi di dalam radius, (N > D). Menggunakan data gabungan.")
-            result, success, total_cost = await jalankan_solver_async(
-                query, query_original, D, budget, time_limit
+            tempat_terpilih, berhasil_tidak, total_biaya = await jalankan_solver_async(
+                data_input_modified, 
+                data_input_original, 
+                jumlah_hari, 
+                budget, 
+                time_limit
             )
 
             # Apabila masih kosong dan gagal, gunakan constraint alternatif, dengan data query gabungan
-            if not flatten(result) and not success:
+            if not flatten(tempat_terpilih) and not berhasil_tidak:
                 print("Tidak ada solusi di dalam radius, (N > D). Menggunakan data gabungan dan constraint alternatif.")
-                result, success, total_cost = await jalankan_solver_async(
-                    query, query_original, D, budget, time_limit, alternative=True
+                tempat_terpilih, berhasil_tidak, total_biaya = await jalankan_solver_async(
+                    data_input_modified, 
+                    data_input_original, 
+                    jumlah_hari, 
+                    budget, 
+                    time_limit, 
+                    alternative=True
                 )
     
-    return result, int(total_cost)
+    return tempat_terpilih, int(total_biaya)
