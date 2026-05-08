@@ -19,6 +19,7 @@ def filter_tempat_bds_radius(data_input: pd.DataFrame) -> tuple[pd.DataFrame, pd
 
     return data_input.loc[apakah_titik_kurang_dari_radius], data_input.loc[~apakah_titik_kurang_dari_radius]
 
+
 """
 
 """
