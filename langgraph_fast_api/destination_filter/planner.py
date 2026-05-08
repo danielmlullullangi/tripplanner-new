@@ -123,13 +123,13 @@ def jalankan_solver(
 async def jalankan_solver_async(
     data: pd.DataFrame,
     data_original: pd.DataFrame,
-    D: int,
+    jumlah_hari: int,
     budget: int | float,
     time_limit: list[float],
     alternative: bool = False,
 ):
     return await asyncio.to_thread(
-        jalankan_solver, data, data_original, D, budget, time_limit, alternative
+        jalankan_solver, data, data_original, jumlah_hari, budget, time_limit, alternative
     )
 
 # Linear Optimization (SAT) (sama aja, tapi nilai constraint nya bisa desimal)
@@ -163,9 +163,9 @@ async def trip_planner_selection(
             print("Masih ada tempat di dalam radius, (N <= D). Mengambil tempat seadanya.")
             cost = tempat_wisata_dalam_radius["price_max"].values
             places = tempat_wisata_dalam_radius["title"].values
-            for i in range(N):
+            for i in range(jumlah_tempat_tersedia):
                 tempat_terpilih[1].append(places[i])
-                total_cost += cost[i]
+                total_biaya += cost[i]
         else: # N > D
             # Gunakan constraint alternatif
             print("Masih ada tempat di dalam radius, (N > D). Menggunakan constraint alternatif.")
