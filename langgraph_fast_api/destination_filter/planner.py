@@ -84,7 +84,7 @@ def model_terkonfigurasi(
         # Constraint 2: tempat maksimal dikunjungi 1 kali
         for i in range(jumlah_tempat_wisata):
             model.add(bool_terpilih_tidak[i] <= 1)
-            
+
         # Constraint 3: total biaya
         model.add(
             sum(harga[i] * bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata)) <= budget * 100
@@ -105,7 +105,6 @@ def model_terkonfigurasi(
         model.add(
             sum(bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata)) <= jumlah_hari*10
         )
-
         return nama_tempat_wisata, harga_rerata_original, durasi_modified, jumlah_tempat_wisata, bool_terpilih_tidak, model
 
 def jalankan_solver(
@@ -116,7 +115,7 @@ def jalankan_solver(
     time_limit: list[float],
     alternative: bool = False,
 ):
-    places, cost, duration, N, x, model = model_terkonfigurasi(
+    places, cost, _, N, x, model = model_terkonfigurasi(
         data, 
         data_original, 
         D, 
@@ -124,6 +123,7 @@ def jalankan_solver(
         time_limit, 
         alternative
     )
+
     return solver_CP_SAT(N, x, places, cost, model)
 
 async def jalankan_solver_async(
