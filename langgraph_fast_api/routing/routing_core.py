@@ -7,6 +7,7 @@ def tentukan_titik_start_dan_end(
         rating_lokasi_pada_peta: dict[str, int],
         titik_lokasi_terfilter: list[str],
 ) -> tuple[int, int]:
+    
     """
     Menentukan start dan end point berdasarkan tempat dengan rating tertinggi atau terdekat
     """

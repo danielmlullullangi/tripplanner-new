@@ -3,13 +3,12 @@ import numpy as np
 import asyncio
 
 # Preferences
-def _sync_get_preferences(
+def filter_destinasi_bds_style_whom(
         data_terfilter: pd.DataFrame,
         jumlah_hari: int,
         whom: str = "default",
         styles: str | list[str] = ["default"],
 ) -> tuple[list[float], pd.DataFrame, float]:
-
     """
     Batasan waktu perjalanan dalam 1 hari tergantung whom-nya: solo, family, couple, friends, dan elderly.
     """
@@ -74,20 +73,20 @@ def _sync_get_preferences(
             ],
         }
 
-        categories = set()
+        style_dipilih = set()
         for style in styles:
-            categories.update(style_map.get(style, []))
+            style_dipilih.update(style_map.get(style, []))
 
-        return data_terfilter[data_terfilter["category"].isin(categories)]
+        return data_terfilter[data_terfilter["category"].isin(style_dipilih)]
 
     data_terfilter = choose_style(data_terfilter, styles)
 
     return time_limit, data_terfilter
 
-async def get_preferences(
+async def filter_destinasi_bds_style_whom_async(
         data_terfilter: pd.DataFrame,
         jumlah_hari: int,
         whom: str = "default",
         styles: str | list[str] = ["default"],
 ) -> tuple[list[float], pd.DataFrame, float]:
-    return await asyncio.to_thread(_sync_get_preferences, data_terfilter, jumlah_hari, whom, styles)
+    return await asyncio.to_thread(filter_destinasi_bds_style_whom, data_terfilter, jumlah_hari, whom, styles)

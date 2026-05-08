@@ -1,6 +1,6 @@
 from typing_extensions import TypedDict, Any
 import pandas as pd
-from destination_filter.preferences import get_preferences
+from destination_filter.preferences import filter_destinasi_bds_style_whom_async
 from destination_filter.planner import trip_planner_selection
 from routing.routing_core import routing_destinasi
 from destination_filter.get_nearby_food_hotel import get_top_food_hotel
