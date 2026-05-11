@@ -23,19 +23,18 @@ async def generate_itinerary(data_input, data_rating_modified, jumlah_hari, whom
                           (data_input["category"] == "Food & Drink")) &
                           (data_input["poi"] != "event")]
 
-    # Get preferences
+    # Filter Destinasi
     time_limit, data_destinasi = await filter_destinasi_bds_style_whom_async(data_destinasi, jumlah_hari, whom, styles)
     data_destinasi_rating_modified = data_destinasi_rating_modified.loc[data_destinasi.index]
 
-    # Search destination
+    # Mencari Titik Destinasi
     result, total_biaya = await pemilihan_titik_wisata(data_destinasi_rating_modified, data_destinasi, jumlah_hari, budget, time_limit, False)
 
-    # Destination routing
-    titik_hasil_TSP_dibagi_per_hari, total_dist = await routing_destinasi(data_destinasi, result, jumlah_hari)
+    # Bagi Titik Destinasi per Hari
+    titik_hasil_TSP_dibagi_per_hari, _ = await routing_destinasi(data_destinasi, result, jumlah_hari)
 
-    # Find nearest accommodation
+    # Cari Akomodasi Terdekat
     restoran, hotel = await get_top_food_hotel(data_hotel_restoran, data_destinasi, titik_hasil_TSP_dibagi_per_hari, jumlah_hari, 5)
-
 
     titik_hasil_TSP_dibagi_per_hari = generate_metadata(titik_hasil_TSP_dibagi_per_hari, data_destinasi)
     restoran = generate_metadata(restoran, data_hotel_restoran)
