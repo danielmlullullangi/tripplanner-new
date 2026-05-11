@@ -4,13 +4,13 @@ from haversine import haversine_vector, Unit
 from ortools.sat.python import cp_model
 import asyncio
 
-# query difilter berdasarkan radius -> CP-SAT
-
+#Query difilter berdasarkan radius -> CP-SAT
+#Mengambil tempat-tempat yang ada di dalam radius saja
 def filter_tempat_bds_radius(data_input: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     if len(data_input) == 0:
         return data_input, data_input
 
-    threshold_radius = 40
+    threshold_radius = 40 #dalam kilometer
     array_koordinat_tempat_wisata = data_input[["latitude", "longitude"]].values
     koordinat_rerata_tempat_wisata = array_koordinat_tempat_wisata.mean(axis=0)
 
@@ -138,7 +138,7 @@ async def jalankan_solver_async(
     )
 
 # Linear Optimization (SAT) (sama aja, tapi nilai constraint nya bisa desimal)
-async def trip_planner_selection(
+async def pemilihan_titik_wisata(
     data_input_modified: pd.DataFrame, # enhanced
     data_input_original: pd.DataFrame,
     jumlah_hari: int,
@@ -151,10 +151,14 @@ async def trip_planner_selection(
         return res[1]
 
     tempat_wisata_dalam_radius, tempat_wisata_luar_radius = filter_tempat_bds_radius(data_input_modified)
-    tempat_wisata_dalam_radius_original, tempat_wisata_luar_radius_original = filter_tempat_bds_radius(data_input_original)
+    tempat_wisata_dalam_radius_original, _ = filter_tempat_bds_radius(data_input_original)
 
     tempat_terpilih, berhasil_tidak, total_biaya = await jalankan_solver_async(
-        tempat_wisata_dalam_radius, tempat_wisata_dalam_radius_original, jumlah_hari, budget, time_limit
+        tempat_wisata_dalam_radius, 
+        tempat_wisata_dalam_radius_original, 
+        jumlah_hari, 
+        budget, 
+        time_limit
     )
     res = flatten(tempat_terpilih)
 

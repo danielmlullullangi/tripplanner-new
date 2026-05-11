@@ -1,7 +1,7 @@
 from typing_extensions import TypedDict, Any
 import pandas as pd
 from destination_filter.preferences import filter_destinasi_bds_style_whom_async
-from destination_filter.planner import trip_planner_selection
+from destination_filter.planner import pemilihan_titik_wisata
 from routing.routing_core import routing_destinasi
 from destination_filter.get_nearby_food_hotel import get_top_food_hotel
 from utils import generate_metadata
@@ -24,11 +24,11 @@ async def generate_itinerary(data_input, data_rating_modified, jumlah_hari, whom
                           (data_input["poi"] != "event")]
 
     # Get preferences
-    time_limit, data_destinasi = await get_preferences(data_destinasi, jumlah_hari, whom, styles)
+    time_limit, data_destinasi = await filter_destinasi_bds_style_whom_async(data_destinasi, jumlah_hari, whom, styles)
     data_destinasi_rating_modified = data_destinasi_rating_modified.loc[data_destinasi.index]
 
     # Search destination
-    result, total_biaya = await trip_planner_selection(data_destinasi_rating_modified, data_destinasi, jumlah_hari, budget, time_limit, False)
+    result, total_biaya = await pemilihan_titik_wisata(data_destinasi_rating_modified, data_destinasi, jumlah_hari, budget, time_limit, False)
 
     # Destination routing
     titik_hasil_TSP_dibagi_per_hari, total_dist = await routing_destinasi(data_destinasi, result, jumlah_hari)
