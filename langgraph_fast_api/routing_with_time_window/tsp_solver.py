@@ -46,6 +46,32 @@ data dan manager pada memori Python. Ketika function ini digunakan solver OR-Too
 meskipun sudah pindah bahasa pemrograman, which is variabel data dan manager.
 """
 
+KECEPATAN_KM_PER_MENIT = 30/60
+WAKTU_MULAI_DEFAULT = 480
+
+def jam_ke_menit(jam: int, menit: int = 0) -> int:
+    """
+    Mengonversi jam:menit ke total menit sejak tengah malam.
+ 
+    Contoh:
+        jam_ke_menit(8, 30) → 510   # jam 08:30
+        jam_ke_menit(17, 0) → 1020  # jam 17:00
+    """
+    return jam * 60 + menit
+ 
+ 
+def menit_ke_jam_str(total_menit: int) -> str:
+    """
+    Mengonversi total menit sejak tengah malam ke string "HH:MM".
+ 
+    Contoh:
+        menit_ke_jam_str(510) → "08:30"
+        menit_ke_jam_str(75)  → "01:15"
+    """
+    jam = total_menit // 60
+    menit = total_menit % 60
+    return f"{jam:02d}:{menit:02d}"
+
 # PROPOSED
 def solver_TSP_sync(
         matriks_waktu_antardestinasi: list[list[int]],  # ← ganti: time matrix, bukan distance
@@ -53,7 +79,7 @@ def solver_TSP_sync(
         durasi_kunjungan: list[int],                       # ← BARU: lama kunjungan per destinasi (menit)
         titik_awal: int | None = None,
         titik_akhir: int | None = None,
-        slack_max: int = 60,                               # ← BARU: max waiting time (menit)
+        waktu_tunggu_maks: int = 10,                               # ← BARU: max waiting time (menit)
         time_limit_detik: int = 5
 ):
 
@@ -98,26 +124,22 @@ def solver_TSP_sync(
     else:
         manager = pywrapcp.RoutingIndexManager(
             jumlah_destinasi,
-            jumlah_kendaraan, # 1 vehicle
-            [titik_awal], # start node
-            [titik_akhir] # end node
+            jumlah_kendaraan,
+            [titik_awal],
+            [titik_akhir]
         )
         matrix = matriks_waktu_antardestinasi
         dummy_node = None
 
     matrix = scaler(np.array(matrix), 1000)
-    durasi_scaled = [int (d * 1000/ max(matriks_waktu_antardestinasi[0][0],1)) 
-                     if max(max(row) for row in matriks_waktu_antardestinasi) > 0
-                     else d
-                     for d in durasi_kunjungan]
     
     faktor_skala = 1000/ max(max(row) for row in matriks_waktu_antardestinasi) if max (max(row) for row in matriks_waktu_antardestinasi) > 0 else 1
-    durasi_scaled = [int(d * faktor_skala) for d in durasi_kunjungan]
+    durasi_kunjungan_scaled = [int(d * faktor_skala) for d in durasi_kunjungan]
 
-    tw_scaled = [(int(buka*faktor_skala), int(tutup*faktor_skala)) for buka, tutup in time_windows]
-    slack_scaled = int(slack_max*faktor_skala)
+    time_window_scaled = [(int(buka*faktor_skala), int(tutup*faktor_skala)) for buka, tutup in time_windows]
+    waktu_tunggu_maks_scaled = int(waktu_tunggu_maks*faktor_skala)
 
-    kapasitas_waktu_scaled = max(tutup for _, tutup in tw_scaled) + slack_scaled
+    kapasitas_waktu_scaled = max(tutup for _, tutup in time_window_scaled) + waktu_tunggu_maks_scaled
 
     routing = pywrapcp.RoutingModel(manager)
 
@@ -125,7 +147,7 @@ def solver_TSP_sync(
     def time_callback(from_index, to_index):
         from_node = manager.IndexToNode(from_index)
         to_node = manager.IndexToNode(to_index)
-        return matrix[from_node][to_node] + durasi_scaled[from_node]
+        return matrix[from_node][to_node] + durasi_kunjungan_scaled[from_node]
 
     transit_callback_index = routing.RegisterTransitCallback(time_callback)
 
@@ -151,13 +173,13 @@ def solver_TSP_sync(
 
     NAMA_DIMENSI = "Time"
     routing.AddDimension(transit_callback_index,
-                         slack_scaled,
+                         waktu_tunggu_maks_scaled,
                          kapasitas_waktu_scaled,
                          False,
                          NAMA_DIMENSI)
     time_dimension = routing.GetDimensionOrDie(NAMA_DIMENSI)
 
-    for idx, (buka_scaled, tutup_scaled) in enumerate(tw_scaled):
+    for idx, (buka_scaled, tutup_scaled) in enumerate(time_window_scaled):
         index = manager.NodeToIndex(idx)
         time_dimension.CumulVar(index).SetRange(buka_scaled, tutup_scaled)
 
@@ -211,7 +233,7 @@ async def solver_TSP_async(
         durasi_kunjungan: list[int],
         titik_awal: int | None = None,
         titik_akhir: int | None = None,
-        slack_max: int = 60,
+        waktu_tunggu_maks: int = 10,
         time_limit_detik: int = 5,
 ) -> tuple[list[int] | None, list[int], float]:
     return await asyncio.to_thread(solver_TSP_sync, 
@@ -220,7 +242,7 @@ async def solver_TSP_async(
                                    durasi_kunjungan,
                                    titik_awal, 
                                    titik_akhir,
-                                   slack_max,
+                                   waktu_tunggu_maks,
                                    time_limit_detik)
 
 #Function FINAL yang dioper ke routing_core.py
@@ -231,7 +253,7 @@ async def intracluster_tsp(
         matriks_waktu_antardestinasi: list[list[float]],
         time_windows: list[tuple[int, int]],
         durasi_kunjungan: list[int],
-        slack_max: int = 60,
+        waktu_tunggu_maks: int = 10,
         time_limit_detik: int = 5,
 ) -> tuple[list[str], list[int], float]:
     urutan_indeks, arrival_time, total_waktu_tempuh = await solver_TSP_async(matriks_waktu_antardestinasi, 
@@ -239,7 +261,7 @@ async def intracluster_tsp(
                                                                              durasi_kunjungan,
                                                                              titik_awal, 
                                                                              titik_akhir,
-                                                                             slack_max,
+                                                                             waktu_tunggu_maks,
                                                                              time_limit_detik)
     if urutan_indeks is None:
         arrival_time_fallback = [time_windows[i][0] for i in range(len(places))]
