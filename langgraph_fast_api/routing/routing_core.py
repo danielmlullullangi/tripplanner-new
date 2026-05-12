@@ -54,9 +54,9 @@ def hitung_matriks_jarak_antartitik(
     for counter_baris in range(jumlah_tempat):
         koordinat_tempat = koordinat_terurut_bds_lokasi[counter_baris]
         for counter_kolom in range(counter_baris + 1, jumlah_tempat):
-            d = haversine(koordinat_tempat, koordinat_terurut_bds_lokasi[counter_kolom])
-            matrix[counter_baris][counter_kolom] = d
-            matrix[counter_baris][counter_kolom] = d
+            jarak_km = haversine(koordinat_tempat, koordinat_terurut_bds_lokasi[counter_kolom])
+            matrix[counter_baris][counter_kolom] = jarak_km
+            matrix[counter_kolom][counter_baris] = jarak_km
     return matrix
 
 def bagi_destinasi_jadi_jadwal_per_hari(
