@@ -6,7 +6,13 @@ from routing.routing_core import routing_destinasi
 from destination_filter.get_nearby_food_hotel import get_top_food_hotel
 from utils import generate_metadata
 
-async def generate_itinerary(data_input, data_rating_modified, jumlah_hari, whom, styles, budget, daerah_tujuan_destinasi):
+async def generate_itinerary(data_input, 
+                             data_rating_modified, 
+                             jumlah_hari, 
+                             whom, 
+                             styles, 
+                             budget, 
+                             daerah_tujuan_destinasi):
     # Ubah data dari supabase (list of dict) ke dataframe
     data_input = pd.DataFrame(data_input)
     data_rating_modified = pd.DataFrame(data_rating_modified)

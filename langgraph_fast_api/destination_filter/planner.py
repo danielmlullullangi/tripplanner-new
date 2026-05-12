@@ -88,7 +88,9 @@ def model_terkonfigurasi(
         for i in range(jumlah_tempat_wisata):
             model.add(bool_terpilih_tidak[i] <= 1)
 
-        # Constraint 3: total biaya
+        # Constraint 3: total biaya. Total biaya di sini dikalikan dengan 100 karena rating, harga/budget, duration diskalakan 100. Kenapa diskalakan?
+        # Diskalakan karena solver CP-SAT hanya menerima input integer sedangkan input rating, harga, dan duration dalam bentuk pecahan.
+        # Di sini, constraint terkait yang baru ditambahkan hanya constraint budget dan time_limit (duration). Terdapat jumlah_hari juga.
         model.add(
             sum(harga[i] * bool_terpilih_tidak[i] for i in range(jumlah_tempat_wisata)) <= budget * 100)
 
@@ -109,7 +111,7 @@ def model_terkonfigurasi(
 
 def jalankan_solver(
     data_input_modified, 
-    data_input_original, 
+    data_input_original,
     jumlah_hari, 
     budget, 
     time_limit, 

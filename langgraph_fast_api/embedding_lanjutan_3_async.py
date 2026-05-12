@@ -216,7 +216,7 @@ def ubah_rating_data(state: TripPlannerState) -> TripPlannerState:
         print(f"Error: {e}")
         return state
 
-from main import generate_itinerary
+from routing_planner_main import generate_itinerary
 import asyncio
 
 async def select_destination_food_hotel(state: TripPlannerState) -> TripPlannerState:
