@@ -1,5 +1,17 @@
 from typing import Dict, Any, Optional, List, Literal
 from typing_extensions import TypedDict
+from openai import OpenAI
+from langgraph.graph import StateGraph, START, END
+import asyncpg, asyncio
+import json
+import pandas as pd
+from decimal import Decimal
+import json
+from decimal import Decimal
+from datetime import datetime, date
+import copy
+from routing_planner_main import generate_itinerary
+import asyncio
 
 class TripPlannerState(TypedDict):
     """
@@ -32,8 +44,6 @@ class TripPlannerState(TypedDict):
 """
 Model untuk Embedding
 """
-from openai import OpenAI
-
 openai_api_key_embed = "tripplanner_embed"
 # Kalau llama cpp di WSL dan langgraph di windows: pakai IP WSL 172.30.252.174
 # Kalau keduanya di WSL atau Windows: pakai localhost
@@ -104,12 +114,6 @@ async def embed_prompt(state: TripPlannerState) -> TripPlannerState:
         return state
 
 
-
-import asyncpg, asyncio
-import json
-import pandas as pd
-from decimal import Decimal
-
 _db_pool = None
 _db_pool_lock = asyncio.Lock()
 async def init_db_pool():
@@ -118,17 +122,28 @@ async def init_db_pool():
         if _db_pool is not None:
             return
         _db_pool = await asyncpg.create_pool(
-            host="46.250.232.129",
-            port=5436,
-            database="postgres",
+            host="localhost",
+            database="tripisia",
             user="postgres",
-            password="QIC4YTWePq6zoDOp8xXjPjR99T7ctUluVvA0mG93KnSytYWE9lO6mduTs43JYE4H",
+            password="postgres",
             min_size=2,
             max_size=5,
             ssl=False,
             command_timeout=60,
             max_queries=50000,
-            max_inactive_connection_lifetime=300,
+            max_inactive_connection_lifetime=300
+
+            # host="46.250.232.129",
+            # port=5436,
+            # database="postgres",
+            # user="postgres",
+            # password="QIC4YTWePq6zoDOp8xXjPjR99T7ctUluVvA0mG93KnSytYWE9lO6mduTs43JYE4H",
+            # min_size=2,
+            # max_size=5,
+            # ssl=False,
+            # command_timeout=60,
+            # max_queries=50000,
+            # max_inactive_connection_lifetime=300,
         )
 
 async def get_db_pool():
@@ -172,10 +187,6 @@ async def fetch_filter_dan_sort_data(state: TripPlannerState) -> TripPlannerStat
     state['data'] = list(map(convert_row_fast, rows)) #data_list
     return state
 
-import json
-from decimal import Decimal
-from datetime import datetime, date
-import copy
 
 #Custom encoder untuk menangani Decimal dan datetime
 class CustomEncoder(json.JSONEncoder):
@@ -215,8 +226,6 @@ def ubah_rating_data(state: TripPlannerState) -> TripPlannerState:
         print(f"Error: {e}")
         return state
 
-from routing_planner_main import generate_itinerary
-import asyncio
 
 async def select_destination_food_hotel(state: TripPlannerState) -> TripPlannerState:
     """
@@ -254,7 +263,6 @@ async def select_destination_food_hotel(state: TripPlannerState) -> TripPlannerS
 
 def parafrase_output(state: TripPlannerState) -> TripPlannerState:
     try:
-        # print("H1")
         # 1. Format destinasi
         paraphrased_destinations = {}
         for day, destinations in state["rekomendasi_destinasi"].items():
@@ -262,22 +270,18 @@ def parafrase_output(state: TripPlannerState) -> TripPlannerState:
             paraphrased_destinations[day] = {}
             for nama, detail in destinations.items():
                 paraphrased_destinations[day][nama] = detail
-        # print("H2")
         # 2. Parafrase makanan (hasil disimpan untuk keperluan lain jika diperlukan)
         paraphrased_foods = {}
         for day, foods in state["rekomendasi_makanan"].items():
             paraphrased_foods[day] = {}
             for nama, detail in foods.items():
                 paraphrased_foods[day][nama] = detail
-        # print("H3")
         # 3. Parafrase hotel
         paraphrased_hotels = {}
         for day, hotels in state["rekomendasi_hotel"].items():
             paraphrased_hotels[day] = {}
             for nama, detail in hotels.items():
                 paraphrased_hotels[day][nama] = detail
-
-        # print("H4")
         # 4. Bangun struktur output per hari
         result_list = []
         num_days = state.get("num_days", 0)
@@ -291,7 +295,6 @@ def parafrase_output(state: TripPlannerState) -> TripPlannerState:
                         "longitude": detail.get("longitude")
                     }
                 })
-
             # (Opsional) Jika hotel juga ingin format serupa
             hotel_list = []
             for nama, detail in state["rekomendasi_hotel"].get(day, {}).items():
@@ -308,7 +311,6 @@ def parafrase_output(state: TripPlannerState) -> TripPlannerState:
                 "hotel_terdekat": hotel_list,   # jika diinginkan
                 "destinasi": []
             }
-
             # Ambil destinasi dari hasil parafrase untuk hari ini
             dest_hari = paraphrased_destinations.get(day, {})
             for nama, detail in dest_hari.items():
@@ -322,21 +324,12 @@ def parafrase_output(state: TripPlannerState) -> TripPlannerState:
                 }
                 day_data["destinasi"].append(dest_item)
             result_list.append(day_data)
-
-        print("H5")
         state['rekomendasi_destinasi_paraph'] = result_list
-
-        return state
-
+        return stat
     except Exception as e:
         print(f"Error in parafrase_output: {e}")
         return state
 
-
-
-
-
-from langgraph.graph import StateGraph, START, END
 
 graph = StateGraph(TripPlannerState)
 

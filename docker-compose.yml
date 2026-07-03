@@ -67,6 +67,6 @@ services:
       - "1"
       - --no-ws
       - --runtime-threads
-      - "4"
+      - "1"
       - app2_async:app
     restart: no
