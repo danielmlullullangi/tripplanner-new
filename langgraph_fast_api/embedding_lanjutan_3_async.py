@@ -106,7 +106,6 @@ async def embed_prompt(state: TripPlannerState) -> TripPlannerState:
 
 
 import asyncpg, asyncio
-import time
 import json
 import pandas as pd
 from decimal import Decimal
@@ -253,8 +252,6 @@ async def select_destination_food_hotel(state: TripPlannerState) -> TripPlannerS
         print(e)
         return state
 
-
-import time
 def parafrase_output(state: TripPlannerState) -> TripPlannerState:
     try:
         # print("H1")

@@ -73,7 +73,7 @@ def solver_TSP_sync(
         manager = pywrapcp.RoutingIndexManager(
             jumlah_destinasi + 1,
             jumlah_kendaraan, # 1 vehicle
-            [jumlah_destinasi], # start node, dummy node
+            [jumlah_destinasi], # start node, dummy node.
             [jumlah_destinasi] # end node
         )
         matrix = new_matrix
@@ -104,7 +104,6 @@ def solver_TSP_sync(
 
     routing = pywrapcp.RoutingModel(manager)
 
-
     def distance_callback(from_index, to_index):
         from_node = manager.IndexToNode(from_index)
         to_node = manager.IndexToNode(to_index)
@@ -121,12 +120,26 @@ def solver_TSP_sync(
     Selanjutnya, didefinisikan juga search space di mana search space ini berisi semua kemungkinan rute yang ada.
     Nah, alasannya didefinisikannya search space ini adalah untuk mengurangi banyaknya search space ideal.
     Misal, ada 13 titik lokasi, artinya untuk mencari 1 jalur ideal, dibutuhkan 12! (faktorial) kombinasi urutan destinasi, yaitu ~479jt kemungkinan ➝ sangat LAMA. →➜➞➝
-    Untuk itu, di sini pemilihan kandidat pada search space dilakukan dengan lebih "cerdas", yaitu dengan menggunakan FirstSolutionStrategy.CHEAPEST_ARC.
+    Untuk itu, di sini pemilihan kandidat pada search space dilakukan dengan lebih "cerdas", yaitu dengan menggunakan FirstSolutionStrategy.PATH_CHEAPEST_ARC.
     Sebenarnya FirstSolutionStrategy ini adalah fase pertama, tujuannya untuk menemukan solusi awal secara cepat dulu walau belum optimal. Fase pertama ini WAJIB pake FirstSolutionStrategy.
-    Nah, di sini digunakan PATH_CHEAPEST_ARC,yaitu pemilihan node (titik/destinasi) berikutnya berdasarkan cost termurah.
+    Nah, di sini digunakan PATH_CHEAPEST_ARC,yaitu pemilihan node (titik/destinasi) berikutnya berdasarkan cost termurah. Dan secara default, memang ORTools pakai PATH_CHEAPEST_ARC.
 
     Sebenarnya, untuk kondisi banyak constraint yang harus dipenuhi, lebih cocok menggunakan PATH_MOST_CONSTRAINED_ARC,
     yaitu pemilihan node berikutnya yang paling terkonstrain. Analoginya seperti memprioritaskan orang yang paling sibuk karena time-window terbatas, bisa melayani kendaraan tertentu saja, dll.
+    Di sini, masih implementasi PATH_CHEAPEST_ARC karena cepat.
+
+    Sebenarnya, ada banyak variasi lain selain PATH_CHEAPEST_ARC dan PATH_MOST_CONSTRAINED_ARC: 
+    - LOCAL_CHEAPEST_ARC, 
+    - GLOBAL_CHEAPEST_ARC, 
+    - FIRST_UNBOUND_MIN_VALUE,
+    - BEST_INSERTION,
+    - PARALLEL_CHEAPEST_INSERTION,
+    - LOCAL_CHEAPEST_INSERTION,
+    - SAVINGS,
+    - SWEEP,
+    - CHRISTOFIDES,
+    - ALL_UNPERFORMED
+
     Untuk fase kedua, yaitu LocalSearchHeuristics (opsional bisa dipake or not). Sebenarnya, tidak harus LocalSearchHeuritstics. Ada variasi lain. Namun, paling umum digunakan pada fase 2 adalah LocalSearchHeuristics.
     """
 
